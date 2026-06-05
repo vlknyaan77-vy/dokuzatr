@@ -17,11 +17,11 @@ Dokuzatr, piyasadaki tepe ve dip noktalarını dinamik bir şekilde takip eden v
 - **Smoothing Constant (SC):** ER'ye bağlı olarak hızlanan veya yavaşlayan bir düzeltme katsayısıdır.
 - **Sonuç:** `f_kama_atr` fonksiyonu, piyasa gürültüsünün az olduğu (trend olan) dönemlerde daha hızlı, gürültülü dönemlerde ise daha yavaş tepki veren bir volatilite ölçümü sağlar.
 
-### 2.2. Sabit Gamma ve Dinamik ATR Optimizasyonu (v6.2)
-Son güncellemelerle birlikte indikatörün hesaplama stratejisi tamamen otomatik ATR periyodu üzerine kurulmuştur:
+### 2.2. Sabit Gamma ve Dinamik ATR Optimizasyonu (v6.3)
+İndikatörün hesaplama stratejisi otomatik veya manuel ATR periyodu üzerine kuruludur:
 *   **Sabit Gamma:** Filtre genişliğini belirleyen Gamma katsayısı her zaman **9.0** değerine sabitlenmiştir.
-*   **Konsolide ATR Listesi:** Eskiden çekmeceler halinde ayrılan ATR periyotları tek bir listede birleştirilmiştir (0.09 - 900.0).
-*   **Asimetrik Optimizasyon:** Tepe (Peak) ve Dip (Valley) filtreleri, bu geniş listedeki tüm değerleri kullanarak kendileri için en ideal (fiyatı kırmayan en yakın) ATR periyodunu bağımsız olarak seçer.
+*   **Asimetrik Optimizasyon:** Tepe (Peak) ve Dip (Valley) filtreleri, listedeki tüm değerleri (0.09 - 900.0) kullanarak en ideal ATR periyodunu bağımsız olarak seçebilir.
+*   **Otomatik Motor Kontrolü (Yeni):** v6.3 sürümü ile "Otomatik Optimizasyon Motorunu Aç" seçeneği eklenmiştir. Kullanıcı motoru kapatarak tamamen kendi belirlediği manuel ATR periyotlarını kullanabilir.
 
 ---
 
@@ -40,7 +40,7 @@ Filtrenin çizilme algoritması `upd_filt` metodu içinde tanımlanmıştır. Bu
 Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre içinde filtre" görevi gören 3 ek katman bulunmaktadır:
 
 ### 4.1. Simülasyon Katmanı (Auto Motor)
-Sistem arka planda 0.09'dan 900.0'a kadar olan tüm ATR değerlerini simüle eder. Fiyatın temas ettiği katmanlar elenir ve en yakın kararlı katman seçilir.
+Motor aktifse, sistem arka planda 0.09'dan 900.0'a kadar olan tüm ATR değerlerini simüle eder. Fiyatın temas ettiği katmanlar elenir ve en yakın kararlı katman seçilir.
 
 ### 4.2. Çapa Sabitleme Katmanı (Anchor Filters)
 - **Settle Threshold:** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez.
@@ -55,4 +55,4 @@ Sistem arka planda 0.09'dan 900.0'a kadar olan tüm ATR değerlerini simüle ede
 ---
 
 ## Özet
-Dokuzatr v6.2, karmaşık Gamma ayarlarını ortadan kaldırarak odağını **zaman duyarlılığına (ATR Periyodu)** çevirmiştir. Sabit 9.0 Gamma koruması altında, piyasanın hızına göre kendini 0.09 ile 900 bar arasında bir derinliğe otomatik olarak ayarlar.
+Dokuzatr v6.3, kullanıcıya **tam otomasyon** ile **manuel kontrol** arasında seçim yapma şansı tanır. Sabit 9.0 Gamma koruması altında, motor açıldığında piyasanın hızına göre kendi derinliğini ayarlar, kapatıldığında ise kullanıcının belirlediği stratejik periyotlara sadık kalır.

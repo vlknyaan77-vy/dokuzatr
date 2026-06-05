@@ -1,5 +1,5 @@
 //@version=6
-indicator("Volcanic Auto Peaks & Valleys v6.2", overlay=true, max_bars_back=5000, max_lines_count=500, max_labels_count=500)
+indicator("Volcanic Auto Peaks & Valleys v6.3", overlay=true, max_bars_back=5000, max_lines_count=500, max_labels_count=500)
 
 // --- GRUPLAR / GROUPS ---
 string GRP_AUTO = "⚓ Otomatik Çapa Ayarları / Auto Anchor Settings"
@@ -16,6 +16,8 @@ auto_threshold = input.float(0.1, "Sabitleme Eşiği / Settle Threshold (x sz)",
 auto_prox_threshold = input.float(0.5, "Yaklaşma Eşiği / Proximity Threshold (%)", group=GRP_AUTO, tooltip="Fiyat filtreye bu kadar yaklaşırsa çapa güncellenir.")
 p_anchor_time  = input.time(timestamp("2024-01-01 00:00"), "Tepe Çapa Zamanı / Peak Anchor Time", confirm=true, group=GRP_AUTO)
 v_anchor_time  = input.time(timestamp("2024-01-01 00:00"), "Dip Çapa Zamanı / Valley Anchor Time", confirm=true, group=GRP_AUTO)
+
+use_auto_motor = input.bool(true, "🤖 Otomatik Optimizasyon Motorunu Aç (ATR)", group=GRP_AUTO, tooltip="Açık: Fiyatı kırmayan en uygun ATR periyodunu otomatik olarak tarar ve seçer.")
 
 // --- TEPE GİRDİLERİ (PEAK) ---
 p_atr_opt = input.string(defval="9", title="Tepe ATR Periyodu", group=GRP_FILT_P, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
@@ -125,13 +127,13 @@ if lb_mode == "Zaman (Manuel Çapa)"
     if time <= v_anchor_time
         motor_v_idx_fixed := bar_index
 
-if barstate.islast
+if barstate.islast and use_auto_motor
     p_search_arr = atr_values
     v_search_arr = atr_values
 
     float best_p = p_atr_val_manual
     float best_v = v_atr_val_manual
-    
+
     // Peak Motor
     int start_idx_p = lb_mode == "Zaman (Manuel Çapa)" ? motor_p_idx_fixed : motor_p_idx
     float st_p = high[bar_index - start_idx_p]
@@ -196,8 +198,8 @@ if barstate.islast
     v_atr_main := best_v
 
 // 5. Final Effective Values & Sizes
-float p_atr_eff = nz(p_atr_main, p_atr_val_manual)
-float v_atr_eff = nz(v_atr_main, v_atr_val_manual)
+float p_atr_eff = use_auto_motor ? nz(p_atr_main, p_atr_val_manual) : p_atr_val_manual
+float v_atr_eff = use_auto_motor ? nz(v_atr_main, v_atr_val_manual) : v_atr_val_manual
 
 float p_gamma_val = 9.0
 float v_gamma_val = 9.0
@@ -310,16 +312,19 @@ if show_table and barstate.islast
     pos = table_pos == "Top Right" ? position.top_right : table_pos == "Bottom Right" ? position.bottom_right : table_pos == "Top Left" ? position.top_left : table_pos == "Bottom Left" ? position.bottom_left : position.middle_right
     var table info_tab = table.new(pos, 2, 4, border_width=1, border_color=color.gray, frame_width=1, frame_color=color.gray)
     c_bg = color.new(color.gray, 80), c_txt = color.white
-    table.cell(info_tab, 0, 0, "💎 Volcanic v6.2", bgcolor=color.new(color.black, 40), text_color=color.yellow)
+    table.cell(info_tab, 0, 0, "💎 Volcanic v6.3", bgcolor=color.new(color.black, 40), text_color=color.yellow)
     table.cell(info_tab, 1, 0, "", bgcolor=color.new(color.black, 40))
     table.cell(info_tab, 0, 1, "Parametre", bgcolor=c_bg, text_color=c_txt)
     table.cell(info_tab, 1, 1, "Değer", bgcolor=c_bg, text_color=c_txt)
     
+    p_label = use_auto_motor ? "🤖 " : "Man: "
+    v_label = use_auto_motor ? "🤖 " : "Man: "
+
     table.cell(info_tab, 0, 2, "Tepe ATR (G:9)", bgcolor=color.new(color.gray, 90), text_color=c_txt)
-    table.cell(info_tab, 1, 2, "🤖 " + str.tostring(p_atr_eff, "#.###"), bgcolor=color.new(color.gray, 90), text_color=c_txt)
+    table.cell(info_tab, 1, 2, p_label + str.tostring(p_atr_eff, "#.###"), bgcolor=color.new(color.gray, 90), text_color=c_txt)
     
     table.cell(info_tab, 0, 3, "Dip ATR (G:9)", bgcolor=color.new(color.gray, 90), text_color=c_txt)
-    table.cell(info_tab, 1, 3, "🤖 " + str.tostring(v_atr_eff, "#.###"), bgcolor=color.new(color.gray, 90), text_color=c_txt)
+    table.cell(info_tab, 1, 3, v_label + str.tostring(v_atr_eff, "#.###"), bgcolor=color.new(color.gray, 90), text_color=c_txt)
 
 var label lp = na
 var label lv = na
