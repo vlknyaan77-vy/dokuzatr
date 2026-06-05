@@ -17,17 +17,11 @@ Dokuzatr, piyasadaki tepe ve dip noktalarını dinamik bir şekilde takip eden v
 - **Smoothing Constant (SC):** ER'ye bağlı olarak hızlanan veya yavaşlayan bir düzeltme katsayısıdır.
 - **Sonuç:** `f_kama_atr` fonksiyonu, piyasa gürültüsünün az olduğu (trend olan) dönemlerde daha hızlı, gürültülü dönemlerde ise daha yavaş tepki veren bir volatilite ölçümü sağlar.
 
-### 2.2. ATR Modu ve ATR Periyodu İşleyişi (Tepe ve Dip İçin Bağımsız)
-İndikatörde her iki filtre (Tepe ve Dip) için de ATR periyodu **ayrı ayrı ve bağımsız** olarak çalışır:
-
-#### A. Standart Mod (ATR Modu Kapalı)
-*   Hem Tepe (Peak) hem de Dip (Valley) filtreleri, genel ayarlardaki sabit **ATR Periyodu** (varsayılan 9) değerini kullanır.
-*   Bu modda filtrelerin hassasiyeti Gamma çarpanı ile ayarlanır.
-
-#### B. ATR Modu (Etkinleştirildiğinde)
-*   Tepe ve Dip için ayrı "ATR Modunu Etkinleştir" seçenekleri bulunur (`p_use_atr_mode` ve `v_use_atr_mode`).
-*   Eğer etkinse: Gamma 9.0'a sabitlenir ve o filtreye özel seçilen **ATR Periyodu** (Tepe ATR veya Dip ATR) hesaplamaya dahil edilir.
-*   **Örnek:** Tepe filtresi 14 periyotluk ATR ile yavaş hareket ederken, Dip filtresi 5 periyotluk ATR ile çok daha agresif/hızlı takip yapabilir.
+### 2.2. Sabit Gamma ve Dinamik ATR Optimizasyonu (v6.2)
+Son güncellemelerle birlikte indikatörün hesaplama stratejisi tamamen otomatik ATR periyodu üzerine kurulmuştur:
+*   **Sabit Gamma:** Filtre genişliğini belirleyen Gamma katsayısı her zaman **9.0** değerine sabitlenmiştir.
+*   **Konsolide ATR Listesi:** Eskiden çekmeceler halinde ayrılan ATR periyotları tek bir listede birleştirilmiştir (0.09 - 900.0).
+*   **Asimetrik Optimizasyon:** Tepe (Peak) ve Dip (Valley) filtreleri, bu geniş listedeki tüm değerleri kullanarak kendileri için en ideal (fiyatı kırmayan en yakın) ATR periyodunu bağımsız olarak seçer.
 
 ---
 
@@ -45,22 +39,20 @@ Filtrenin çizilme algoritması `upd_filt` metodu içinde tanımlanmıştır. Bu
 
 Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre içinde filtre" görevi gören 3 ek katman bulunmaktadır:
 
-### 4.1. Simülasyon Katmanı (Auto Gamma Motor)
-`auto_gamma_mode` aktif olduğunda, sistem arka planda onlarca farklı filtreyi simüle eder.
-- **Eleme Filtresi:** Fiyatın temas ettiği veya kırdığı tüm katmanlar elenir. En yakın kararlı katman seçilir.
+### 4.1. Simülasyon Katmanı (Auto Motor)
+Sistem arka planda 0.09'dan 900.0'a kadar olan tüm ATR değerlerini simüle eder. Fiyatın temas ettiği katmanlar elenir ve en yakın kararlı katman seçilir.
 
 ### 4.2. Çapa Sabitleme Katmanı (Anchor Filters)
-- **Settle Threshold (Sabitleme Eşiği):** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez.
-- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaşırsa sistem çapa noktasını güncelleyerek kendini yeniden kalibre eder.
+- **Settle Threshold:** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez.
+- **Proximity Threshold:** Fiyat filtreye çok yaklaştığında sistem çapa noktasını güncelleyerek kendini yeniden kalibre eder.
 
 ---
 
 ## 5. Görselleştirme ve Çapalama
 - **Lookback Mode:** Geçmişteki en yüksek tepe veya en düşük dip noktalarını bulur.
 - **Stepline (Basamaklı):** Filtrenin yatay kaldığı klasik görünüm.
-- **Polyline:** Performans için çizimler `polyline` fonksiyonu ile optimize edilmiştir.
 
 ---
 
 ## Özet
-Dokuzatr'da ATR periyodu hesaplaması **asimetriktir**. Yani tepe ve dip filtreleri birbirinden tamamen farklı zaman derinliklerine (periyotlara) sahip olabilir. Bu, piyasanın yukarı ve aşağı yönlü hareketlerindeki hız farklarını (volatilite farklarını) ayrı ayrı optimize etmenize olanak tanır.
+Dokuzatr v6.2, karmaşık Gamma ayarlarını ortadan kaldırarak odağını **zaman duyarlılığına (ATR Periyodu)** çevirmiştir. Sabit 9.0 Gamma koruması altında, piyasanın hızına göre kendini 0.09 ile 900 bar arasında bir derinliğe otomatik olarak ayarlar.
