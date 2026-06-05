@@ -17,18 +17,17 @@ Dokuzatr, piyasadaki tepe ve dip noktalarını dinamik bir şekilde takip eden v
 - **Smoothing Constant (SC):** ER'ye bağlı olarak hızlanan veya yavaşlayan bir düzeltme katsayısıdır.
 - **Sonuç:** `f_kama_atr` fonksiyonu, piyasa gürültüsünün az olduğu (trend olan) dönemlerde daha hızlı, gürültülü dönemlerde ise daha yavaş tepki veren bir volatilite ölçümü sağlar.
 
-### 2.2. ATR Modu ve ATR Periyodu İşleyişi
-İndikatörde iki farklı hesaplama stratejisi bulunur. Filtrenin boyutu (`sz`) şu iki yöntemden biriyle belirlenir:
+### 2.2. ATR Modu ve ATR Periyodu İşleyişi (Tepe ve Dip İçin Bağımsız)
+İndikatörde her iki filtre (Tepe ve Dip) için de ATR periyodu **ayrı ayrı ve bağımsız** olarak çalışır:
 
 #### A. Standart Mod (ATR Modu Kapalı)
-*   **Mantık:** ATR Periyodu (varsayılan 9) sabittir. Volatilite çarpanı olan **Gamma** değişken kılınır.
-*   **Hesaplama:** `Size = KAMA(TR, Sabit Periyot) * Değişken Gamma`
-*   **Etki:** Filtrenin fiyattan uzaklığı değişir ama "tepkiselliği/hızı" (ATR periyodu sabit olduğu için) aynı kalır.
+*   Hem Tepe (Peak) hem de Dip (Valley) filtreleri, genel ayarlardaki sabit **ATR Periyodu** (varsayılan 9) değerini kullanır.
+*   Bu modda filtrelerin hassasiyeti Gamma çarpanı ile ayarlanır.
 
 #### B. ATR Modu (Etkinleştirildiğinde)
-*   **Mantık:** Gamma değeri **9.0**'a sabitlenir. Bu sefer **ATR Periyodu** (bakılacak geçmiş bar sayısı) değişken kılınır.
-*   **Hesaplama:** `Size = KAMA(TR, Değişken Periyot) * 9.0 (Sabit Gamma)`
-*   **Etki:** Periyot küçüldükçe filtre anlık volatiliteye çok hızlı tepki verir (daha oynaktır), periyot büyüdükçe filtre daha "hantal" ama daha güvenli hale gelir. Bu modda, filtrenin "bakış açısı" (zaman derinliği) optimize edilir.
+*   Tepe ve Dip için ayrı "ATR Modunu Etkinleştir" seçenekleri bulunur (`p_use_atr_mode` ve `v_use_atr_mode`).
+*   Eğer etkinse: Gamma 9.0'a sabitlenir ve o filtreye özel seçilen **ATR Periyodu** (Tepe ATR veya Dip ATR) hesaplamaya dahil edilir.
+*   **Örnek:** Tepe filtresi 14 periyotluk ATR ile yavaş hareket ederken, Dip filtresi 5 periyotluk ATR ile çok daha agresif/hızlı takip yapabilir.
 
 ---
 
@@ -52,7 +51,7 @@ Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre 
 
 ### 4.2. Çapa Sabitleme Katmanı (Anchor Filters)
 - **Settle Threshold (Sabitleme Eşiği):** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez.
-- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaştığında sistem çapa noktasını güncelleyerek kendini yeniden kalibre eder.
+- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaşırsa sistem çapa noktasını güncelleyerek kendini yeniden kalibre eder.
 
 ---
 
@@ -64,4 +63,4 @@ Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre 
 ---
 
 ## Özet
-Dokuzatr, **ATR Modu** sayesinde hem genişliği (Gamma) hem de zaman duyarlılığını (Periyot) optimize edebilen bir yapıdadır. Filtre çizimi, bu iki parametrenin çarpımıyla oluşan "koruma kalkanının" fiyat tarafından itilmesi esasına dayanır.
+Dokuzatr'da ATR periyodu hesaplaması **asimetriktir**. Yani tepe ve dip filtreleri birbirinden tamamen farklı zaman derinliklerine (periyotlara) sahip olabilir. Bu, piyasanın yukarı ve aşağı yönlü hareketlerindeki hız farklarını (volatilite farklarını) ayrı ayrı optimize etmenize olanak tanır.
