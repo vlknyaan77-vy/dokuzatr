@@ -36,24 +36,30 @@ Bu mantık, fiyatın extrem noktalarından itibaren belirlenen volatilite kadar 
 
 ---
 
-## 4. Otomatik Çapa (Auto Anchor) ve Sabitleme
+## 4. Ek Katman Filtreleri (Görünmez Mekanizmalar)
 
-İndikatörün en güçlü yanı, filtrenin nereden başlayacağını (çapa noktasını) dinamik olarak seçebilmesidir.
+Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre içinde filtre" görevi gören 3 ek katman bulunmaktadır:
 
-- **Lookback Mode:** Manuel, Otomatik (Hassasiyet), Global Maksimum gibi modlarla geçmişteki en yüksek tepe veya en düşük dip bulunur.
-- **Settle Threshold (Sabitleme Eşiği):** Fiyat, mevcut filtreden belirli bir oranda (`auto_threshold * sz`) uzaklaşırsa, çapa noktası güncel tepe/dip noktasına "resetlenir".
-- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaşırsa (`auto_prox_threshold`), çapa yine güncellenir. Bu, trend değişimlerini veya konsolidasyonları yakalamak için kullanılır.
+### 4.1. Simülasyon Katmanı (Auto Gamma Motor)
+`auto_gamma_mode` aktif olduğunda, sistem arka planda onlarca farklı filtreyi simüle eder.
+- **Dinamik Seçim:** Seçilen "Çekmece" içindeki tüm Gamma değerleri için hayali filtreler oluşturulur.
+- **Eleme Filtresi:** Fiyatın (`close`) temas ettiği veya kırdığı tüm katmanlar elenir.
+- **Sonuç:** Kırılmadan kalan en yakın (en hassas) katman ana filtre olarak atanır.
+
+### 4.2. Çapa Sabitleme Katmanı (Anchor Filters)
+Filtrenin nereden başlayacağını belirleyen mantıksal bir filtredir:
+- **Settle Threshold (Sabitleme Eşiği):** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez. Bu, geçici dalgalanmaların (noise) filtreyi bozmasını engeller.
+- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaştığında sistem bunu bir "tehdit" veya "potansiyel trend değişimi" olarak algılar ve çapa noktasını güncelleyerek kendini yeniden kalibre eder.
+
+### 4.3. Adaptif Volatilite Filtresi (KAMA-TR)
+Hesaplamanın en başında ham volatilite (True Range) verisi bir "verimlilik" filtresinden geçer. Piyasa verimli (trendli) ise filtre daralır, piyasa verimsiz (testere/yatay) ise filtre genişleyerek hatalı sinyalleri engeller.
 
 ---
 
-## 5. Otomatik Gamma Motoru (Auto Gamma Motor)
+## 5. Otomatik Çapa (Auto Anchor) ve Sabitleme
 
-`auto_gamma_mode` aktif edildiğinde, indikatör brute-force (kaba kuvvet) benzeri bir optimizasyon döngüsü çalıştırır:
-
-1.  **Tarama:** Önceden tanımlanmış Gamma veya ATR değerleri listesi (Çekmeceler) üzerinde döngüye girer.
-2.  **Simülasyon:** Her bir değer için çapa noktasından günümüze kadar bir filtre simülasyonu yapar.
-3.  **Başarısızlık Kontrolü:** Eğer fiyat (`close`), simülasyon sırasında filtreyi aşağı veya yukarı yönlü kırarsa, o değer "başarısız" kabul edilir.
-4.  **En Uygun Seçim:** Fiyatı kırmayan (en yakın takip eden) ilk ve en küçük Gamma/ATR değeri "ideal" olarak seçilir ve grafiğe yansıtılır.
+İndikatörün en güçlü yanı, filtrenin nereden başlayacağını (çapa noktasını) dinamik olarak seçebilmesidir.
+- **Lookback Mode:** Manuel, Otomatik (Hassasiyet), Global Maksimum gibi modlarla geçmişteki en yüksek tepe veya en düşük dip bulunur.
 
 ---
 
@@ -61,7 +67,7 @@ Bu mantık, fiyatın extrem noktalarından itibaren belirlenen volatilite kadar 
 
 - **Stepline (Basamaklı):** Filtrenin yatay kaldığı ve sadece fiyat ittiğinde hareket ettiği klasik görünüm.
 - **Diagonal (Eğik):** Filtrenin noktalar arasında düz çizgilerle bağlandığı görünüm.
-- **Polyline:** Performans optimizasyonu için tüm çizimler Pine Script'in `polyline` fonksiyonu ile barstate.islast durumunda tek seferde (veya değişimlerde) çizilir.
+- **Polyline:** Performans optimizasyonu için tüm çizimler Pine Script'in `polyline` fonksiyonu ile barstate.islast durumunda tek seferde çizilir.
 
 ---
 
