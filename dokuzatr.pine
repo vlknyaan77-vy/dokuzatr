@@ -1,5 +1,5 @@
 //@version=6
-indicator("Volcanic Auto Peaks & Valleys v6.3", overlay=true, max_bars_back=5000, max_lines_count=500, max_labels_count=500)
+indicator("Volcanic Auto Peaks & Valleys v6.6", overlay=true, max_bars_back=5000, max_lines_count=500, max_labels_count=500)
 
 // --- GRUPLAR / GROUPS ---
 string GRP_AUTO = "⚓ Otomatik Çapa Ayarları / Auto Anchor Settings"
@@ -10,23 +10,18 @@ string GRP_TAB  = "📊 Tablo Ayarları / Table Settings"
 
 // --- GİRDİLER / INPUTS ---
 lb_mode        = input.string("Manuel", "Tarama Modu / Lookback Mode", options=["Manuel", "Otomatik (Hassasiyet)", "Global (Maksimum)", "Zaman (Manuel Çapa)"], group=GRP_AUTO)
-lb_sens        = input.int(5, "Otomatik Hassasiyet / Auto Sensitivity", minval=1, maxval=20, group=GRP_AUTO, tooltip="Otomatik modda ne kadar geriye bakılacağını ayarlar.")
+lb_sens        = input.int(5, "Otomatik Hassasiyet / Auto Sensitivity", minval=1, maxval=20, group=GRP_AUTO)
 auto_lookback  = input.int(360, "Manuel Tarama Mesafesi / Manual Lookback", minval=10, maxval=4990, group=GRP_AUTO)
 auto_threshold = input.float(0.1, "Sabitleme Eşiği / Settle Threshold (x sz)", group=GRP_AUTO, tooltip="Fiyat filtreden bu kadar uzaklaşırsa çapa güncellenir.")
 auto_prox_threshold = input.float(0.5, "Yaklaşma Eşiği / Proximity Threshold (%)", group=GRP_AUTO, tooltip="Fiyat filtreye bu kadar yaklaşırsa çapa güncellenir.")
 p_anchor_time  = input.time(timestamp("2024-01-01 00:00"), "Tepe Çapa Zamanı / Peak Anchor Time", confirm=true, group=GRP_AUTO)
 v_anchor_time  = input.time(timestamp("2024-01-01 00:00"), "Dip Çapa Zamanı / Valley Anchor Time", confirm=true, group=GRP_AUTO)
 
-use_auto_motor = input.bool(true, "🤖 Otomatik Optimizasyon Motorunu Aç (ATR)", group=GRP_AUTO, tooltip="Açık: Fiyatı kırmayan en uygun ATR periyodunu otomatik olarak tarar ve seçer.")
+use_auto_motor = input.bool(false, "🤖 Otomatik Optimizasyon Motorunu Aç (ATR)", group=GRP_AUTO, tooltip="Açık: Fiyatı kırmayan en uygun ATR periyodu otomatik olarak seçilir.")
 
-// --- TEPE GİRDİLERİ (PEAK) ---
-p_atr_opt = input.string(defval="9", title="Tepe ATR Periyodu", group=GRP_FILT_P, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
-
-// --- DİP GİRDİLERİ (VALLEY) ---
-v_atr_opt = input.string(defval="9", title="Dip ATR Periyodu", group=GRP_FILT_V, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
-
-atr_opt_def    = input.string(defval="9", title="Varsayılan ATR Periyodu / Default ATR Period", group=GRP_VIS, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
-atr_per        = nz(str.tonumber(atr_opt_def), 9.0)
+// --- ATR PERİYODU GİRİŞLERİ ---
+p_atr_opt = input.string(defval="9", title="Tepe ATR Periyodu (Peak)", group=GRP_FILT_P, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
+v_atr_opt = input.string(defval="9", title="Dip ATR Periyodu (Valley)", group=GRP_FILT_V, options=["0.09", "0.18", "0.225", "0.27", "0.36", "0.45", "0.54", "0.63", "0.72", "0.81", "0.9", "1.0", "1.125", "1.35", "1.8", "2.0", "2.25", "2.7", "3.15", "3.6", "4.05", "4.5", "4.95", "5.4", "5.85", "6.3", "6.75", "7.2", "7.65", "8.1", "8.55", "9", "9.45", "9.9", "10.35", "10.8", "11.25", "11.7", "12.15", "12.6", "13.05", "13.5", "13.95", "14.4", "14.85", "15.3", "15.75", "16.2", "16.65", "17.1", "17.55", "18", "20.25", "20.7", "21.6", "22.05", "22.5", "22.95", "23.4", "23.85", "24.3", "24.75", "25.2", "25.65", "26.1", "26.55", "27", "27.45", "27.9", "28.35", "28.8", "29.25", "29.7", "30.15", "30.6", "31.05", "31.5", "31.95", "32.4", "32.85", "33.3", "33.75", "34.2", "34.65", "35.1", "35.55", "36", "39.6", "40.5", "43.2", "45", "46.8", "49.5", "50.4", "54", "57.6", "58.5", "61.2", "63", "64.8", "67.5", "68.4", "72", "76.5", "81", "85.5", "90", "94.5", "99", "103.5", "108", "112.5", "117", "121.5", "126", "130.5", "135", "139.5", "144", "148.5", "153", "157.5", "162", "166.5", "171", "175.5", "180", "270", "360", "450", "540", "630", "720", "810", "900"])
 
 show_peak      = input.bool(true, "Tepe Filtresini Göster / Show Peak Filter", group=GRP_VIS)
 show_valley    = input.bool(true, "Dip Filtresini Göster / Show Valley Filter", group=GRP_VIS)
@@ -58,12 +53,6 @@ f_kama_atr_step(series float src, float n, float prev_kama) =>
     float kama = na(prev_kama) ? src : prev_kama + sc * (src - prev_kama)
     [kama, n < 1.0 ? kama * n : kama]
 
-f_kama_atr(series float src, float n) =>
-    var float kama = na
-    [nk, res] = f_kama_atr_step(src, n, kama)
-    kama := nk
-    res
-
 type FiltState
     float rfilt = na
 
@@ -83,9 +72,7 @@ float tr = ta.tr(true)
 // 1. Fundamental Constants & State
 var float[] atr_values = array.from(0.09, 0.18, 0.225, 0.27, 0.36, 0.45, 0.54, 0.63, 0.72, 0.81, 0.9, 1.0, 1.125, 1.35, 1.8, 2.0, 2.25, 2.7, 3.15, 3.6, 4.05, 4.5, 4.95, 5.4, 5.85, 6.3, 6.75, 7.2, 7.65, 8.1, 8.55, 9.0, 9.45, 9.9, 10.35, 10.8, 11.25, 11.7, 12.15, 12.6, 13.05, 13.5, 13.95, 14.4, 14.85, 15.3, 15.75, 16.2, 16.65, 17.1, 17.55, 18.0, 20.25, 20.7, 21.6, 22.05, 22.5, 22.95, 23.4, 23.85, 24.3, 24.75, 25.2, 25.65, 26.1, 26.55, 27.0, 27.45, 27.9, 28.35, 28.8, 29.25, 29.7, 30.15, 30.6, 31.05, 31.5, 31.95, 32.4, 32.85, 33.3, 33.75, 34.2, 34.65, 35.1, 35.55, 36.0, 39.6, 40.5, 43.2, 45.0, 46.8, 49.5, 50.4, 54.0, 57.6, 58.5, 61.2, 63.0, 64.8, 67.5, 68.4, 72.0, 76.5, 81.0, 85.5, 90.0, 94.5, 99.0, 103.5, 108.0, 112.5, 117.0, 121.5, 126.0, 130.5, 135.0, 139.5, 144.0, 148.5, 153.0, 157.5, 162.0, 166.5, 171.0, 175.5, 180.0, 270.0, 360.0, 450.0, 540.0, 630.0, 720.0, 810.0, 900.0)
 
-float rng_per   = atr_per
-float cur_sz_unit = f_kama_atr(tr, rng_per)
-max_bars_back(cur_sz_unit, 5000)
+max_bars_back(tr, 5000)
 max_bars_back(high, 5000)
 max_bars_back(low, 5000)
 max_bars_back(close, 5000)
@@ -99,7 +86,6 @@ float v_atr_val_manual = nz(str.tonumber(v_atr_opt), 9.0)
 int lb_input = lb_mode == "Global (Maksimum)" ? 4990 : lb_mode == "Otomatik (Hassasiyet)" ? lb_sens * 150 : auto_lookback
 int eff_lb = math.min(math.max(1, lb_input), bar_index + 1)
 
-// Optimization: Dynamic lookback calls to handle short history
 f_dyn_hb(src, len) => ta.highestbars(src, math.min(len, bar_index + 1))
 f_dyn_lb(src, len) => ta.lowestbars(src, math.min(len, bar_index + 1))
 
@@ -128,29 +114,19 @@ if lb_mode == "Zaman (Manuel Çapa)"
         motor_v_idx_fixed := bar_index
 
 if barstate.islast and use_auto_motor
-    p_search_arr = atr_values
-    v_search_arr = atr_values
-
-    float best_p = p_atr_val_manual
-    float best_v = v_atr_val_manual
-
     // Peak Motor
     int start_idx_p = lb_mode == "Zaman (Manuel Çapa)" ? motor_p_idx_fixed : motor_p_idx
     float st_p = high[bar_index - start_idx_p]
     int p_start_j = math.max(start_idx_p, bar_index - 2000)
-    for i = 0 to array.size(p_search_arr) - 1
-        float val = array.get(p_search_arr, i)
+    for i = 0 to array.size(atr_values) - 1
+        float val = array.get(atr_values, i)
         float cur_f = na, bool failed = false
         float cur_kama = na
-
-        float search_gamma = 9.0
-        float search_atr   = val
-
         for j = p_start_j to bar_index
             off = bar_index - j
-            [nk, res_atr] = f_kama_atr_step(tr[off], search_atr, cur_kama)
+            [nk, res_atr] = f_kama_atr_step(tr[off], val, cur_kama)
             cur_kama := nk
-            r = res_atr * search_gamma
+            r = res_atr * 9.0
             if j == p_start_j
                 cur_f := st_p
             else
@@ -161,26 +137,22 @@ if barstate.islast and use_auto_motor
             if close[off] > cur_f
                 failed := true, break
         if not failed
-            best_p := val
+            p_atr_main := val
             break
     
     // Valley Motor
     int start_idx_v = lb_mode == "Zaman (Manuel Çapa)" ? motor_v_idx_fixed : motor_v_idx
     float st_v = low[bar_index - start_idx_v]
     int v_start_j = math.max(start_idx_v, bar_index - 2000)
-    for i = 0 to array.size(v_search_arr) - 1
-        float val = array.get(v_search_arr, i)
+    for i = 0 to array.size(atr_values) - 1
+        float val = array.get(atr_values, i)
         float cur_f = na, bool failed = false
         float cur_kama = na
-
-        float search_gamma = 9.0
-        float search_atr   = val
-
         for j = v_start_j to bar_index
             off = bar_index - j
-            [nk, res_atr] = f_kama_atr_step(tr[off], search_atr, cur_kama)
+            [nk, res_atr] = f_kama_atr_step(tr[off], val, cur_kama)
             cur_kama := nk
-            r = res_atr * search_gamma
+            r = res_atr * 9.0
             if j == v_start_j
                 cur_f := st_v
             else
@@ -191,21 +163,22 @@ if barstate.islast and use_auto_motor
             if close[off] < cur_f
                 failed := true, break
         if not failed
-            best_v := val
+            v_atr_main := val
             break
-
-    p_atr_main := best_p
-    v_atr_main := best_v
 
 // 5. Final Effective Values & Sizes
 float p_atr_eff = use_auto_motor ? nz(p_atr_main, p_atr_val_manual) : p_atr_val_manual
 float v_atr_eff = use_auto_motor ? nz(v_atr_main, v_atr_val_manual) : v_atr_val_manual
 
-float p_gamma_val = 9.0
-float v_gamma_val = 9.0
+var float p_kama_state = na
+[pk, p_res_atr] = f_kama_atr_step(tr, p_atr_eff, p_kama_state)
+p_kama_state := pk
+float cur_p_sz = p_res_atr * 9.0
 
-float cur_p_sz = f_kama_atr(tr, p_atr_eff) * p_gamma_val
-float cur_v_sz = f_kama_atr(tr, v_atr_eff) * v_gamma_val
+var float v_kama_state = na
+[vk, v_res_atr] = f_kama_atr_step(tr, v_atr_eff, v_kama_state)
+v_kama_state := vk
+float cur_v_sz = v_res_atr * 9.0
 
 // 6. Anchor Settling & History
 var int settled_p_idx = na
@@ -310,9 +283,9 @@ if barstate.islast
 // Table
 if show_table and barstate.islast
     pos = table_pos == "Top Right" ? position.top_right : table_pos == "Bottom Right" ? position.bottom_right : table_pos == "Top Left" ? position.top_left : table_pos == "Bottom Left" ? position.bottom_left : position.middle_right
-    var table info_tab = table.new(pos, 2, 4, border_width=1, border_color=color.gray, frame_width=1, frame_color=color.gray)
+    var table info_tab = table.new(pos, 2, 3, border_width=1, border_color=color.gray, frame_width=1, frame_color=color.gray)
     c_bg = color.new(color.gray, 80), c_txt = color.white
-    table.cell(info_tab, 0, 0, "💎 Volcanic v6.3", bgcolor=color.new(color.black, 40), text_color=color.yellow)
+    table.cell(info_tab, 0, 0, "💎 Volcanic v6.6", bgcolor=color.new(color.black, 40), text_color=color.yellow)
     table.cell(info_tab, 1, 0, "", bgcolor=color.new(color.black, 40))
     table.cell(info_tab, 0, 1, "Parametre", bgcolor=c_bg, text_color=c_txt)
     table.cell(info_tab, 1, 1, "Değer", bgcolor=c_bg, text_color=c_txt)
