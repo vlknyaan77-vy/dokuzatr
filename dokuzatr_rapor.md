@@ -15,12 +15,20 @@ Dokuzatr, piyasadaki tepe ve dip noktalarını dinamik bir şekilde takip eden v
 İndikatör, klasik ATR (Average True Range) yerine Kaufman'ın Uyarlanabilir Hareketli Ortalaması (KAMA) mantığını True Range üzerinde uygular.
 - **Efficiency Ratio (ER):** Fiyatın yönlü hareketi ile toplam oynaklığı arasındaki oran hesaplanır.
 - **Smoothing Constant (SC):** ER'ye bağlı olarak hızlanan veya yavaşlayan bir düzeltme katsayısıdır.
-- **Sonuç:** `f_kama_atr` fonksiyonu, piyasa gürültüsünün az olduğu (trend olan) dönemlerde daha hızlı, gürültülü dönemlerde ise daha yavaş tepki veren bir volatilite ölçümü sağlar. Bu, filtrenin gereksiz kırılmalarını (whipsaw) engeller.
+- **Sonuç:** `f_kama_atr` fonksiyonu, piyasa gürültüsünün az olduğu (trend olan) dönemlerde daha hızlı, gürültülü dönemlerde ise daha yavaş tepki veren bir volatilite ölçümü sağlar.
 
-### 2.2. Gamma Katsayısı
-Gamma, hesaplanan KAMA-ATR değerinin ne kadar genişletileceğini belirleyen bir çarpandır.
-- `Filtre Mesafesi (r) = KAMA(TR, Period) * Gamma`
-- Gamma değeri ne kadar büyükse, filtre fiyattan o kadar uzaklaşır ve trend takibi o kadar "geniş" olur.
+### 2.2. ATR Modu ve ATR Periyodu İşleyişi
+İndikatörde iki farklı hesaplama stratejisi bulunur. Filtrenin boyutu (`sz`) şu iki yöntemden biriyle belirlenir:
+
+#### A. Standart Mod (ATR Modu Kapalı)
+*   **Mantık:** ATR Periyodu (varsayılan 9) sabittir. Volatilite çarpanı olan **Gamma** değişken kılınır.
+*   **Hesaplama:** `Size = KAMA(TR, Sabit Periyot) * Değişken Gamma`
+*   **Etki:** Filtrenin fiyattan uzaklığı değişir ama "tepkiselliği/hızı" (ATR periyodu sabit olduğu için) aynı kalır.
+
+#### B. ATR Modu (Etkinleştirildiğinde)
+*   **Mantık:** Gamma değeri **9.0**'a sabitlenir. Bu sefer **ATR Periyodu** (bakılacak geçmiş bar sayısı) değişken kılınır.
+*   **Hesaplama:** `Size = KAMA(TR, Değişken Periyot) * 9.0 (Sabit Gamma)`
+*   **Etki:** Periyot küçüldükçe filtre anlık volatiliteye çok hızlı tepki verir (daha oynaktır), periyot büyüdükçe filtre daha "hantal" ama daha güvenli hale gelir. Bu modda, filtrenin "bakış açısı" (zaman derinliği) optimize edilir.
 
 ---
 
@@ -32,8 +40,6 @@ Filtrenin çizilme algoritması `upd_filt` metodu içinde tanımlanmıştır. Bu
 2.  **Aşağı İtme (Valley Tracking):** Eğer `Düşük Fiyat + r < Mevcut Filtre` ise, filtre aşağı kaydırılır.
 3.  **Sabit Kalma:** Fiyat bu sınırların arasındaysa, filtre değerini korur (yatay basamak çizer).
 
-Bu mantık, fiyatın extrem noktalarından itibaren belirlenen volatilite kadar bir "esneklik payı" bırakır.
-
 ---
 
 ## 4. Ek Katman Filtreleri (Görünmez Mekanizmalar)
@@ -42,34 +48,20 @@ Grafikte görünen ana filtrelerin haricinde, sistemi stabilize eden ve "filtre 
 
 ### 4.1. Simülasyon Katmanı (Auto Gamma Motor)
 `auto_gamma_mode` aktif olduğunda, sistem arka planda onlarca farklı filtreyi simüle eder.
-- **Dinamik Seçim:** Seçilen "Çekmece" içindeki tüm Gamma değerleri için hayali filtreler oluşturulur.
-- **Eleme Filtresi:** Fiyatın (`close`) temas ettiği veya kırdığı tüm katmanlar elenir.
-- **Sonuç:** Kırılmadan kalan en yakın (en hassas) katman ana filtre olarak atanır.
+- **Eleme Filtresi:** Fiyatın temas ettiği veya kırdığı tüm katmanlar elenir. En yakın kararlı katman seçilir.
 
 ### 4.2. Çapa Sabitleme Katmanı (Anchor Filters)
-Filtrenin nereden başlayacağını belirleyen mantıksal bir filtredir:
-- **Settle Threshold (Sabitleme Eşiği):** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez. Bu, geçici dalgalanmaların (noise) filtreyi bozmasını engeller.
-- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaştığında sistem bunu bir "tehdit" veya "potansiyel trend değişimi" olarak algılar ve çapa noktasını güncelleyerek kendini yeniden kalibre eder.
-
-### 4.3. Adaptif Volatilite Filtresi (KAMA-TR)
-Hesaplamanın en başında ham volatilite (True Range) verisi bir "verimlilik" filtresinden geçer. Piyasa verimli (trendli) ise filtre daralır, piyasa verimsiz (testere/yatay) ise filtre genişleyerek hatalı sinyalleri engeller.
+- **Settle Threshold (Sabitleme Eşiği):** Fiyat filtreden belirli bir mesafe uzaklaşana kadar çapa noktası değişmez.
+- **Proximity Threshold (Yaklaşma Eşiği):** Fiyat filtreye çok yaklaştığında sistem çapa noktasını güncelleyerek kendini yeniden kalibre eder.
 
 ---
 
-## 5. Otomatik Çapa (Auto Anchor) ve Sabitleme
-
-İndikatörün en güçlü yanı, filtrenin nereden başlayacağını (çapa noktasını) dinamik olarak seçebilmesidir.
-- **Lookback Mode:** Manuel, Otomatik (Hassasiyet), Global Maksimum gibi modlarla geçmişteki en yüksek tepe veya en düşük dip bulunur.
-
----
-
-## 6. Görselleştirme
-
-- **Stepline (Basamaklı):** Filtrenin yatay kaldığı ve sadece fiyat ittiğinde hareket ettiği klasik görünüm.
-- **Diagonal (Eğik):** Filtrenin noktalar arasında düz çizgilerle bağlandığı görünüm.
-- **Polyline:** Performans optimizasyonu için tüm çizimler Pine Script'in `polyline` fonksiyonu ile barstate.islast durumunda tek seferde çizilir.
+## 5. Görselleştirme ve Çapalama
+- **Lookback Mode:** Geçmişteki en yüksek tepe veya en düşük dip noktalarını bulur.
+- **Stepline (Basamaklı):** Filtrenin yatay kaldığı klasik görünüm.
+- **Polyline:** Performans için çizimler `polyline` fonksiyonu ile optimize edilmiştir.
 
 ---
 
 ## Özet
-Dokuzatr, **KAMA-ATR** ile piyasa oynaklığını ölçen, **Auto Gamma Motoru** ile en uygun hassasiyeti kendi bulan ve **Dinamik Çapalama** ile trendin başlangıç noktasını sürekli güncelleyen ileri seviye bir takip (trailing) sistemidir. Filitre çizme mantığı, fiyatın extrem noktalarından itibaren volatilite kadar bir "güvenlik alanı" bırakma ve bu alanın ihlali durumunda kendini yeniden optimize etme üzerine kuruludur.
+Dokuzatr, **ATR Modu** sayesinde hem genişliği (Gamma) hem de zaman duyarlılığını (Periyot) optimize edebilen bir yapıdadır. Filtre çizimi, bu iki parametrenin çarpımıyla oluşan "koruma kalkanının" fiyat tarafından itilmesi esasına dayanır.
